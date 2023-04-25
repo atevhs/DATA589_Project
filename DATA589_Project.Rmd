@@ -1,0 +1,69 @@
+---
+title: "DATA589 Project"
+author: "Varshita Kyal, Shveta Sharma, Ujjwal Upadhyay"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,fig.width=8, fig.height=6)
+```
+
+## Introduction
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+library(rgbif) 
+library(ggplot2)
+library(sp) 
+library(sf)
+library(spatstat)
+library(maptools)
+library(rgdal)
+```
+
+```{r echo=FALSE}
+#occ_count() # occurance count for all the species in GBIF (Global Biodiversity Information Facility) - rgbif
+canada_goose <- name_backbone(name="Branta canadensis")
+gooseList <- occ_data(taxonKey = canada_goose$speciesKey, hasCoordinate=TRUE, stateProvince='British Columbia')
+mydata <- gooseList$data
+n_row <- nrow(gooseList$data)
+n_col <- ncol(gooseList$data)
+```
+
+We selected **Canada Goose** species dataset in British Columbia region for the spatial analysis. In GBIF database, this species has approximately 17326212 occurrences. However, we have filtered the data set based on BC, Canada only. When filtered the dataset, we fetched that Canada Goose species in BC has 500 rows and 77 columns of entries.
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+load("BC_Covariates.Rda")
+# Create a spatial points data frame from the longitude and latitude columns
+coordinates <- mydata[,c("decimalLongitude", "decimalLatitude")]
+dat.sp <- SpatialPointsDataFrame(c(mydata[,c('decimalLongitude','decimalLatitude')]), data = mydata)
+# Set the current CRS
+proj4string(dat.sp)<- CRS("+proj=longlat +datum=WGS84")
+# Define the new CRS you want to transform to
+new_crs <- CRS("+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 
+               +y_0=0 +datum=NAD83 +units=m +no_defs")
+# Transform the data to the new CRS
+data.sp_trans <- spTransform(dat.sp, new_crs)
+```
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+parks_ppp <- ppp(x = data.sp_trans@coords[,1], # X coordinates
+                    y = data.sp_trans@coords[,2], # Y coordinates
+                    window = as.owin(DATA$Window),# Observation window
+                    )
+
+col_pal <- c("blue")
+
+plot(parks_ppp,
+     main = "",
+     cex = 0.9,
+     col ="white",
+     border = 3,
+     cols = col_pal,
+     par(bg = "grey90",cex.main = 1.6))
+```
+
+Here we have plotted all the occurrences of Canada Goose in the BC region and we can see that the species are
+mostly present in the south and south-west region of the province. Now we will be exploring what is contributing to the occurrences of the species in the specific places based on various factors like elevation,
+close to water bodies, forests, human habitats, etc.
