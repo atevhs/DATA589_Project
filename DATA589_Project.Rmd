@@ -7,10 +7,10 @@ output: pdf_document
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,fig.width=8, fig.height=6)
+knitr::opts_chunk$set(echo = F,fig.width=8, fig.height=6, warning = F, cache = T, message = F)
 ```
 
-## Introduction
+# Introduction
 
 ```{r warning=FALSE, message=FALSE, echo=FALSE}
 library(rgbif) 
@@ -47,7 +47,7 @@ new_crs <- CRS("+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=10000
 data.sp_trans <- spTransform(dat.sp, new_crs)
 ```
 
-```{r warning=FALSE, message=FALSE, echo=FALSE}
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.cap="Occurences of Canada Goose in BC"}
 parks_ppp <- ppp(x = data.sp_trans@coords[,1], # X coordinates
                     y = data.sp_trans@coords[,2], # Y coordinates
                     window = as.owin(DATA$Window),# Observation window
@@ -66,4 +66,296 @@ plot(parks_ppp,
 
 Here we have plotted all the occurrences of Canada Goose in the BC region and we can see that the species are
 mostly present in the south and south-west region of the province. Now we will be exploring what is contributing to the occurrences of the species in the specific places based on various factors like elevation,
-close to water bodies, forests, human habitats, etc.
+close to water bodies, forests, human habitats, etc.  
+
+# Methods
+
+The described analysis involves examining Canada Goose data in British Columbia, using various R packages such as `rgbif`, `sp`, and `spatstat`. The data is obtained from the Global Biodiversity Information Facility (GBIF) databases and latitude and longitude data is extracted using `rgbif`, and then converted to a usable format with `sp`. Covariate data including elevation, forest cover, HFI, and distance to water is also obtained to create a ppp object using `spatstat`.
+
+To analyze the data, first moment analysis is performed using the quadrat test and hotspot analysis from `spatstat`, which provide information about the homogeneity of the Canada Goose point process. Second moment analysis is performed using the Ripley's K-function and pair correlation function, which can reveal clustering tendencies in the data. Overall, the analysis is a comprehensive spatial exploration of the Canada Goose data in BC, using various techniques and R packages.
+
+## First Moment Analysis
+
+```{r echo=FALSE}
+#Estimate intensity automatically
+intensity(parks_ppp)
+```
+
+As per the summary, average intensity 4.397517e-10 points per square unit and this does not explain the observance of Canada Goose in a meaningful way.
+
+### Quadrat counting
+
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.cap="Quadrat counts of Canada Goose occurences, left 5x5, right 3x3"}
+#Split into a 10 by 10 quadrat and count points
+Q5 <- quadratcount(parks_ppp,
+                  nx = 5,
+                  ny = 5)
+
+#Split into a 5 by 5 quadrat and count points
+Q3 <- quadratcount(parks_ppp,
+                  nx = 3,
+                  ny = 3)
+
+#Side by side plotting
+par(mfrow = c(1,2))
+
+#Plot the output 
+plot(parks_ppp,
+     pch = 16,
+     cex = 0.5,
+     cols = "#046C9A",
+     main = "")
+
+plot(Q5, cex = 2, col = "red", add = T)
+
+#Plot the output 
+plot(parks_ppp,
+     pch = 16,
+     cex = 0.5,
+     cols = "#046C9A",
+     main = "")
+
+plot(Q3, cex = 2, col = "red", add = T)
+```
+
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.cap="Quadrat counts with intensity of Canada Goose occurences (5x5)"}
+#Plot the output Note the use of image = TRUE
+plot(intensity(Q5, image = T),
+     main = "Beilschmiedia pendula intensity")
+
+plot(parks_ppp,
+     pch = 16,
+     cex = 0.6,
+     cols = "white",
+     add = T)
+
+plot(parks_ppp,
+     pch = 16,
+     cex = 0.5,
+     cols = "black",
+     add = T)
+```
+
+Clearly, the assumption of homogeneity is not appropriate for this dataset as the Canada Goose tends to be clustered in certain areas, whereas others have none at all.
+
+We can therefore test for significant deviations from complete spatial randomness (CSR) using a $\chi^2$ test
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+#Quadrat test of homogeneity 
+quadrat.test(parks_ppp)
+```
+
+The small p-value suggests that there is a significant deviation from homogeneity. The p-value doesn’t provide any information on the cause of inhomogeneity, however, and significant deviations can be due to the processes truly being inhomogenous, but also due to a lack of independence between points.
+
+### Kernel estimation
+
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.cap="Kernel Estimation of Canada Goose occurences"}
+#Density estimation of lambda(u)
+lambda_u_hat <- density(parks_ppp)
+
+#Plot the output Note the use of image = TRUE
+plot(lambda_u_hat,
+     main = "Kernel estimate of Canada Goose species intensity")
+
+plot(bei,
+     pch = 16,
+     cex = 0.6,
+     cols = "white",
+     add = T)
+
+plot(bei,
+     pch = 16,
+     cex = 0.5,
+     cols = "black",
+     add = T)
+```
+
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.cap="Adaptive kernel estimate of intensity"}
+#Density estimation of lambda(u)
+lambda_u_hat_adaptive <- adaptive.density(parks_ppp, method = "kernel")
+
+#Plot the output Note the use of image = TRUE
+plot(lambda_u_hat_adaptive,
+     main = "Adaptive kernel estimate of intensity")
+```
+
+### Hot spot analysis
+
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.cap="Adaptive kernel estimate of intensity"}
+# Estimate R
+R <- bw.ppl(parks_ppp)
+
+#Calculate test statistic
+LR <- scanLRTS(parks_ppp, r = R)
+```
+
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.cap="Local p-values"}
+#Compute local p-values
+pvals <- eval.im(pchisq(LR,
+                        df = 1,
+                        lower.tail = FALSE))
+
+
+#Plot the output
+plot(pvals, main = "")
+```
+
+We can local p-values from Figure, we can see that southern region of BC has more occurences of Canada Goose which approves the initial claim.
+
+## Second Moment Descriptives
+
+### Ripley’s K-function
+
+Ripley’s K-function provides information on whether there are significant deviations from independence
+between points
+
+```{r include=FALSE}
+# Bootstrapped CIs
+# rank = 1 means the max and min
+# Border correction is to correct for edges around the window
+# values will be used for CI
+E_bei <- envelope(parks_ppp,
+                  Kest,
+                  correction="border",
+                  rank = 1,
+                  nsim = 19,
+                  fix.n = T)
+```
+
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.cap="Ripley’s K function with border correction assuming homogeneity"}
+# visualise the results
+plot(E_bei,
+     main = "",
+     lwd = 2,
+     xlim = c(0,300000))
+```
+
+```{r warning=FALSE, include=FALSE}
+#Simulation envelope (with points drawn from the estimated intensity)
+E_bei_inhom <- envelope(parks_ppp,
+                        Kinhom,
+                        correction="border",
+                        rank = 1,
+                        nsim = 19,
+                        fix.n = TRUE,
+                        verbose = F)
+```
+
+```{r fig.cap="Ripley’s K function with border correction assuming inhomogeneity"}
+# visualise the results
+plot(E_bei_inhom,
+     main = "",
+     lwd = 2)
+```
+
+### Pair Correlation Function
+
+```{r include=FALSE}
+#Simulation envelope (with points drawn from the estimated intensity)
+pcf_bei_inhom <- envelope(parks_ppp,
+                          pcfinhom,
+                          rank = 1,
+                          nsim = 19)
+```
+
+```{r fig.cap="Pair correlation function assuming inhomogeneity"}
+# visualise the results
+par(mfrow = c(1,2))
+plot(pcf_bei_inhom, main = "")
+
+# Zoom in on range where significant deviations appear
+plot(pcf_bei_inhom,
+     xlim = c(0,10000),
+     main = "",
+     lwd = 2)
+```
+
+
+### Relationships with covariates
+
+Our data includes 4 covariates we can explore: elevation, forest cover, human footprint inventory
+(HFI), and distance to water. Given our research questions, we will start with investigating the HFI and
+the forest cover
+
+```{r, fig.cap="4 covirates explaining the occurence of Canada Goose in BC"}
+par(mfrow = c(2,2))
+
+plot(DATA$Elevation, box = F, par(cex.main = 2), main = "Elevation")
+plot(parks_ppp, pch = 16, cex = 0.9, col = "green",use.marks = F, add = T)
+plot(DATA$Forest, box = F, par(cex.main = 2), main = "Forest")
+plot(parks_ppp, pch = 16, cex = 0.9, col = "green",use.marks = F, add = T)
+plot(DATA$HFI, box = F, par(cex.main = 2), main = "HFI")
+plot(parks_ppp, pch = 16, cex = 0.9, col = "green",use.marks = F, add = T)
+plot(DATA$Dist_Water, box = F, par(cex.main = 2), main = "Distance to Water")
+plot(parks_ppp, pch = 16, cex = 0.9, col = "green",use.marks = F, add = T)
+```
+
+```{r include=FALSE}
+rho_HFI <- rhohat(parks_ppp, DATA$HFI)
+rho_elev <- rhohat(parks_ppp, DATA$Elevation)
+rho_for <- rhohat(parks_ppp, DATA$Forest)
+rho_dtw <- rhohat(parks_ppp, DATA$Dist_Water)
+```
+plot(rho_HFI,
+     main = "",
+     xlab = "HFI", xlim = c(0,0.4))
+```{r fig.cap="Comparison of Intensity with all the four covariates"}
+par(mfrow = c(2,2))
+
+plot(rho_elev,
+     main = "",
+     xlab = "HFI")
+
+plot(rho_for,
+     main = "",
+     xlab = "HFI")
+
+plot(rho_HFI,
+     main = "",
+     xlab = "HFI")
+
+plot(rho_dtw,
+     main = "",
+     xlab = "HFI")
+
+```
+
+### Collinearity
+
+```{r echo=FALSE}
+#Check for collinearity
+cor.im(DATA$Elevation, DATA$Forest, DATA$HFI, DATA$Dist_Water, use = "complete.obs")
+```
+
+**Base model**
+
+The correlation coefficients are relatively weak, so we can proceed with linear model with interaction terms
+to fit our model as an initial guess.
+
+Based on these initial analysis, a reasonable form for the model might be
+
+$$\lambda_{BC\_Parks}(u) = e^{\beta_0+\beta_1[elevation(u)+forestcover(u)+hfi(u)+dist\_water(u)]+\beta_2[elevation(u)^2+forestcover(u)^2+hfi(u)^2+dist\_water(u)^2]}$$
+
+```{r include=FALSE}
+mu <- mean(DATA$Elevation)
+stdev <- sd(DATA$Elevation)
+DATA$Elevation_scaled <- eval.im((Elevation - mu)/stdev, DATA)
+mu <- mean(DATA$Dist_Water)
+stdev <- sd(DATA$Dist_Water)
+DATA$Dist_Water_scaled <- eval.im((Dist_Water - mu)/stdev, DATA)
+```
+
+```{r}
+#Fit the PPP model
+fit <- ppm(parks_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + Forest + I(Forest^2) + HFI + I(HFI^2) + Dist_Water_scaled + I(Dist_Water_scaled^2), data = DATA)
+
+fit
+```
+
+# Results
+
+# Discussion
+
+# References
+
+1. GBIF.org (25 April 2023) GBIF Occurrence Download  https://doi.org/10.15468/dl.qs6zmf
