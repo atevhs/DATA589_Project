@@ -2,12 +2,14 @@
 title: "DATA589 Project"
 author: "Varshita Kyal, Shveta Sharma, Ujjwal Upadhyay"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: pdf_document
+output: 
+  pdf_document:
+    extra_dependencies: ["float"]
 ---
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F, warning = F, cache = T, message = F)
+knitr::opts_chunk$set(echo = F, warning = F, cache = T, message = F, fig.pos = "H", out.extra = "")
 ```
 
 # Introduction
@@ -95,7 +97,7 @@ Therefore, we can check if the dataset is homogeneous or not by plotting it by d
 
 **Quadrat counting for checking inhomogeneity**
 
-When $\lambda$ is spatially varying, $\lambda(u)$ can be estimated nonparametrically by dividing the window into sub-regions (i.e., quadrats) and using our simple points/area estimator.  
+When $\lambda$ is spatially varying, $\lambda(u)$ can be estimated nonparametrically by dividing the window into sub-regions (i.e., quadrats) and using our simple points/area estimator.   
 
 ```{r fig.cap="Quadrat counts of Canada Goose occurences, left 5x5, right 3x3"}
 #Split into a 10 by 10 quadrat and count points
@@ -253,12 +255,6 @@ between points and also assumes homogeneity. However, we know from first moment 
 # rank = 1 means the max and min
 # Border correction is to correct for edges around the window
 # values will be used for CI
-E_bei <- envelope(parks_ppp,
-                  Kest,
-                  correction="border",
-                  rank = 1,
-                  nsim = 19,
-                  fix.n = T)
 
 #Simulation envelope (with points drawn from the estimated intensity)
 E_bei_inhom <- envelope(parks_ppp,
@@ -270,16 +266,7 @@ E_bei_inhom <- envelope(parks_ppp,
                         verbose = F)
 ```
 
-```{r fig.cap="Ripley’s K function with border correction assuming homogeneity and inhomogeneity"}
-par(mfrow = c(2,2))
-
-# visualise the results
-plot(E_bei,
-     main = "",
-     lwd = 2,
-     xlab = "Homogeneity",
-     xlim = c(0,300000))
-
+```{r, fig.cap="Ripley’s K function with border correction assuming inhomogeneity"}
 # visualise the results
 plot(E_bei_inhom,
      main = "",
@@ -307,12 +294,12 @@ pcf_bei_inhom <- envelope(parks_ppp,
 
 ```{r fig.cap="Pair correlation function assuming inhomogeneity"}
 # visualise the results
-#par(mfrow = c(1,2))
+
 plot(pcf_bei_inhom, main = "")
 ```
 
 To get a sense of the distances for which clustering occurs, we used the pair correlation function. Figure 8
-shows evidence for clustering at distances smaller than around 10 km but after that the observed values are not significantly different that those expected from a random spatial process.
+shows evidence for clustering at distances smaller than around 10 km but after that the observed values are showing avoidance behaviours as the species is just present in the southern part of the region.  
 
 
 ## Relationships with covariates
@@ -320,7 +307,7 @@ shows evidence for clustering at distances smaller than around 10 km but after t
 Our data includes 4 covariates we can explore: elevation, forest cover, human footprint inventory (HFI), and distance to water.    
 
 
-```{r fig.cap="4 covariates explaining the occurence of Canada Goose in BC"}
+```{r fig.cap="4 covariates explaining the occurence of Canada Goose in BC", fig.height=7}
 par(mfrow = c(2,2))
 
 plot(DATA$Elevation, box = F, par(cex.main = 2), main = "Elevation")
@@ -352,7 +339,7 @@ rho_for <- rhohat(parks_ppp, DATA$Forest)
 rho_dtw <- rhohat(parks_ppp, DATA$Dist_Water)
 ```
 
-```{r fig.cap="Comparison of Intensity with all the four covariates"}
+```{r fig.cap="Comparison of Intensity with all the four covariates", fig.height=10}
 par(mfrow = c(2,2))
 
 plot(rho_HFI,
@@ -413,7 +400,7 @@ $$\lambda(u) = e^{\alpha+\beta_1Z_1(u)+\beta_2Z_2(u)+...+\beta_iZ_i(u)}$$
 The correlation coefficients are relatively weak, so we can proceed with Poisson model with quadratic terms
 to fit our model as an initial guess of our fitted model.  
 
-Based on these initial analysis, a reasonable form for the model might be
+Based on these initial analysis, a reasonable form for the model ($Model \space 1$) might be
 
 $$\lambda_{BC\_Parks}(u) = e^{\beta_0+\beta_1[elevation(u)+forestcover(u)+hfi(u)+dist\_water(u)]+\beta_2[elevation(u)^2+forestcover(u)^2+hfi(u)^2+dist\_water(u)^2]}$$
 
@@ -433,7 +420,7 @@ fit <- ppm(parks_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + Forest + I(For
 fit
 ```
 
-Considering coefficients which are statistically significant, and suggest that $\lambda_{BC\_CanadaGoose}$ can be estimated as:
+Considering coefficients which are statistically significant, and suggest that $\lambda_{BC\_CanadaGoose}$ can be estimated as ($Model \space 2$):
 
 $$\lambda_{BC\_Parks}(u) = e^{\beta_0+\beta_1[elevation(u)+forestcover(u)+hfi(u)]+[\beta_2dist\_to\_water(u)^2+\beta_2hfi(u)^2]}$$
 
@@ -552,17 +539,26 @@ From Figure 13, we can see that the fitted model covariate terms are capturing t
 
 # Discussion
 
-The spatial analysis of Canada Goose occurrences in British Columbia, Canada reveals that the species is not distributed uniformly throughout the region, with most of the occurrences being in the south and southwest.  
 
-The first moment analysis indicates that the intensity of the occurrences is spatially varying and not homogeneous, with significant deviations from complete spatial randomness.  
+Upon examining the occurrence data of Canada goose on a map of British Columbia, it was observed that the species is mostly present in the southern part of the province. After conducting a first moment analysis, it became evident that the data intensity is non-uniform, and a few regions of the province stand out as hotspots. Subsequently, a second moment analysis was conducted using Ripley's K-function, which revealed data clustering, and the pair correlation analysis showed that there was no significant clustering beyond 10km. Thus, it can be concluded that there is little to no clustering in the occurrence of Canada goose.  
 
-The second moment analysis reveals evidence of clustering tendencies in the data, suggesting that the relationship between points may be due to effects between points rather than relationships with covariates.  Further analysis shows that the occurrence of Canada Goose is related to covariates such as elevation, forest cover, human factor influence, and distance to water, with the species being more likely to occur near water and forested areas. The hot spot analysis identifies the southern region of BC as having more occurrences of Canada Goose.
+Furthermore, analysis of the covariates - HFI, forest cover, and elevation - in relation to the Canada goose data showed that these variables have a non-linear relationship. Distance to water, the fourth covariate, was also examined, but initial assessments did not show a promising linear relationship, so a quadratic form of the covariate was used in the further analysis. Additionally, there was no significant correlation observed between the variables, which allowed them to be combined in further modeling.  
 
-Overall, the analysis is a comprehensive spatial exploration of Canada Goose occurrences in BC, using various techniques and R packages. The findings contribute to a better understanding of the spatial distribution of the species and provide insights into the factors that influence its occurrences in the region.
+The first combined model (Model 1) was fitted with linear and quadratic terms for all four covariates. However, just 'distance to water' and 'HFI' was found to be an significant predictor in quadratic terms and other 2 coviartes as linear and the next model (Model 2) was fitted with elevation, forest cover and HFI using linear and distance to water and HFI as quadratic terms. The AIC scores for the three models are presented in the table below.
+
+|     | Model 1  | Model 2  |  
+|:----|---------:|---------:|
+| AIC | 15423.13 | 15455.44 |
+
+As demonstrated earlier, Model 1 has a lower AIC score compared to the other model, and after conducting a quadrat test, it was concluded that none of the models were superior. Therefore, we opted for a parsimonious model and selected Model 1. The residual, partial residual, and covariate effect plots confirmed the adequacy of the model fit. However, the plots also revealed that there is room for improvement, particularly in areas of high and low elevation.
+
+Our research objectives were two-fold. Firstly, we aimed to determine whether Canada Goose occurrence is present in close proximity to human habitation, and the model indicated that the answer is "yes." Secondly, we sought to establish whether Canada Goose avoid forest cover, but we were unable to conclude that there is a significant relationship between the species and this covariate. Nonetheless, we found that there is a significant association with elevation.
+
+During the analysis and modeling process, we encountered several intriguing challenges and insights that we would like to share to assist with future research. Firstly, the Rho plots and standard residuals plot for this data could not be generated due to NAs in the data. Secondly, if higher-order elevation variables are included in Model 2, the model does not converge.  
 
 Finally, a model was fitted which concludes that occurences of Canada Goose in BC depends on the following equation which can be improved further in future work.
 
-$$\lambda_{BC\_Parks\_reduced}(u) = e^{\beta_0+\beta_1[elevation(u)+forestcover(u)+hfi(u)+dist\_water(u)]}$$
+$$\lambda_{BC\_Parks}(u) = e^{\beta_0+\beta_1[elevation(u)+forestcover(u)+hfi(u)]+[\beta_2dist\_to\_water(u)^2+\beta_2hfi(u)^2]}$$
 
 # References
 
