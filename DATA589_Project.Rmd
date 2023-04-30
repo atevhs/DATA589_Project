@@ -564,3 +564,4 @@ $$\lambda_{BC\_Parks}(u) = e^{\beta_0+\beta_1[elevation(u)+forestcover(u)+hfi(u)
 
 1. GBIF.org (25 April 2023) GBIF Occurrence Download  https://doi.org/10.15468/dl.qs6zmf  
 2. Research topic: https://wildlife-species.canada.ca/bird-status/oiseau-bird-eng.aspx?sY=2019&sL=e&sM=a&sB=CANG
+3. Michael Noonan Github Repository: https://github.com/ubco-mds-2022/Data-589.git
