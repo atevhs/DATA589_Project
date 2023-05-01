@@ -1,4 +1,6 @@
-# DATA589 Project : Canada Goose Species Dataset in British Columbia
+# Canada Goose Species Spatial Data Analysis 
+
+### Course : DATA 589
 
 #### Authors : Ujjwal Upadhayay, Varshita Kyal & Shveta Sharma
 
