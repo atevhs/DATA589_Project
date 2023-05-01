@@ -4,8 +4,6 @@
 
 #### Authors : Ujjwal Upadhayay, Varshita Kyal & Shveta Sharma
 
-#### Course : DATA 589
-
 We have selected **Canada Goose** species dataset in British Columbia region for the spatial analysis. In GBIF database, this species has approximately 17326212 occurrences. However, we have filtered the data set based on BC, Canada only. When filtered the dataset, we fetched that Canada Goose species in BC has 500 rows and 77 columns of entries.
 
 Once the data is converted to spatial point data, we can use spatial statistics tools to analyze the spatial patterns of the species occurrence. For example, we can use a clustering tool like Ripley's K-function to detect if the Canada Goose species is clustered or randomly distributed in BC. We can also use interpolation methods like kernel density estimation (KDE) to create a surface map of the species occurrence density across BC.
