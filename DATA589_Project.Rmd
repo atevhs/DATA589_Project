@@ -42,7 +42,7 @@ coordinates <- mydata[,c("decimalLongitude", "decimalLatitude")]
 dat.sp <- SpatialPointsDataFrame(c(mydata[,c('decimalLongitude','decimalLatitude')]), data = mydata)
 # Set the current CRS
 proj4string(dat.sp)<- CRS("+proj=longlat +datum=WGS84")
-# Define the new CRS you want to transform to
+# Define the new CRS you want to transform into
 new_crs <- CRS("+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 
                +y_0=0 +datum=NAD83 +units=m +no_defs")
 # Transform the data to the new CRS
@@ -67,8 +67,7 @@ plot(parks_ppp,
 ```
 
 Here we have plotted all the occurrences of Canada Goose in the BC region and we can see that the species are
-mostly present in the south and south-west region of the province. Now we will be exploring what is contributing to the occurrences of the species in the specific places based on various factors like elevation,
-close to water bodies, forests, human habitats, etc.  
+mostly present in the south and south-west region of the province. Now we will be exploring what is contributing to the occurrences of the species in the specific places based on various factors like elevation,close to water bodies, forests, human habitats, etc.  
 
 # Methods
 
